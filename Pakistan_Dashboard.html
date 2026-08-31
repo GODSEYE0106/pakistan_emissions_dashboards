@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pakistan Climate & Emissions Dashboard | 2000–2020</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --g1:#1E5631;--g2:#27AE60;--g3:#A9DFBF;--g4:#E8F5E9;--g5:#145A32;
+    --g6:#D5F5E3;--gbg:#F0FAF3;--text:#1A3C2E;--muted:#5D7A66;
+    --card:#fff;--border:#C8E6C9;--shadow:0 2px 8px rgba(30,86,49,.10);
+  }
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--gbg);color:var(--text);min-height:100vh}
+
+  /* ── HEADER ── */
+  .header{background:var(--g1);padding:18px 28px 14px;color:#fff}
+  .header h1{font-size:1.25rem;font-weight:700;letter-spacing:.03em}
+  .header p{font-size:.78rem;color:#A9DFBF;margin-top:3px}
+
+  /* ── LAYOUT ── */
+  .container{max-width:1280px;margin:0 auto;padding:22px 24px 40px}
+
+  /* ── KPI TILES ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--card);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border)}
+  .kpi-hdr{padding:8px 14px 6px;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+  .kpi-body{padding:10px 14px 12px;background:var(--g4)}
+  .kpi-val{font-size:1.65rem;font-weight:800;line-height:1}
+  .kpi-sub{font-size:.73rem;color:var(--muted);margin-top:5px;font-style:italic}
+
+  /* ── SLICER PANEL ── */
+  .slicer-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;
+    box-shadow:var(--shadow);padding:14px 18px;margin-bottom:20px}
+  .slicer-panel h3{font-size:.8rem;font-weight:700;color:var(--g1);text-transform:uppercase;
+    letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .slicer-panel h3 span{background:var(--g2);color:#fff;border-radius:4px;padding:1px 7px;font-size:.7rem}
+  .slicer-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .year-pill{padding:4px 11px;border-radius:20px;font-size:.72rem;font-weight:600;
+    cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:#fff;color:var(--muted);
+    user-select:none}
+  .year-pill:hover{border-color:var(--g2);color:var(--g2)}
+  .year-pill.active{background:var(--g1);color:#fff;border-color:var(--g1)}
+  .year-pill.all-btn{background:var(--g4);color:var(--g1);border-color:var(--g2);font-weight:700}
+  .year-pill.all-btn.active{background:var(--g1);color:#fff}
+
+  /* range slicer */
+  .range-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .range-row label{font-size:.77rem;color:var(--muted);font-weight:600}
+  .range-row select{padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);
+    font-size:.8rem;color:var(--text);background:#fff;cursor:pointer;outline:none}
+  .range-row select:focus{border-color:var(--g2)}
+  .range-row .arrow{color:var(--g2);font-weight:700;font-size:.9rem}
+
+  /* ── CHARTS GRID ── */
+  .charts-top{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .charts-mid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+  .chart-card{background:var(--card);border-radius:10px;box-shadow:var(--shadow);
+    padding:16px 18px 14px;border:1px solid var(--border)}
+  .chart-card.full{grid-column:1/-1}
+  .chart-card h4{font-size:.8rem;font-weight:700;color:var(--g1);margin-bottom:3px}
+  .chart-card p{font-size:.7rem;color:var(--muted);margin-bottom:10px}
+  .chart-wrap{position:relative;width:100%}
+
+  /* ── FOOTER ── */
+  .footer{text-align:center;font-size:.7rem;color:var(--muted);padding:18px 0 6px;
+    border-top:1px solid var(--border);margin-top:10px}
+
+  /* ── TOOLTIP ── */
+  .custom-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
+  .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+  @media(max-width:780px){
+    .kpi-row{grid-template-columns:repeat(2,1fr)}
+    .charts-top,.charts-mid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>PAKISTAN — CLIMATE &amp; EMISSIONS DASHBOARD &nbsp;|&nbsp; 2000–2020</h1>
+  <p>BS in Analytics and Sustainability Studies &nbsp;·&nbsp; Assignment I &nbsp;·&nbsp; Tata Institute of Social Sciences, Mumbai</p>
+</div>
+
+<div class="container">
+
+  <!-- KPI TILES -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-hdr" style="background:#1E5631">Total CO₂ Emissions (Mt) — 2020</div>
+      <div class="kpi-body">
+        <div class="kpi-val" style="color:#1E5631">215.5 Mt</div>
+        <div class="kpi-sub">↑ 107% since 2000 &nbsp;|&nbsp; Coal surge post-2016</div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-hdr" style="background:#2D7D46">Per Capita CO₂ (t/person) — 2020</div>
+      <div class="kpi-body">
+        <div class="kpi-val" style="color:#2D7D46">0.92 t</div>
+        <div class="kpi-sub">Only 21% of World Avg (4.48 t/person)</div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-hdr" style="background:#196F3D">Global CO₂ Share (%) — 2020</div>
+      <div class="kpi-body">
+        <div class="kpi-val" style="color:#196F3D">0.66%</div>
+        <div class="kpi-sub">Emits below its population share (~3%)</div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-hdr" style="background:#145A32">GDP per Capita (USD) — 2020</div>
+      <div class="kpi-body">
+        <div class="kpi-val" style="color:#145A32">$1,278</div>
+        <div class="kpi-sub">Lower-middle income &nbsp;|&nbsp; High vulnerability</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLICER PANEL — Time Series Filter (Fig 1, 2, 4) -->
+  <div class="slicer-panel">
+    <h3>Year Range Filter <span>Controls Fig. 1 &nbsp;·&nbsp; Fig. 2 &nbsp;·&nbsp; Fig. 4</span></h3>
+    <div class="range-row">
+      <label>Start Year</label>
+      <select id="startYear"></select>
+      <span class="arrow">→</span>
+      <label>End Year</label>
+      <select id="endYear"></select>
+      <button class="year-pill all-btn" onclick="resetRange()">Reset</button>
+    </div>
+  </div>
+
+  <!-- SLICER PANEL — Fig. 3 Country Bar Chart Year Selector -->
+  <div class="slicer-panel">
+    <h3>Year Slicer <span>Controls Fig. 3 — Country Comparison</span></h3>
+    <div class="slicer-row" id="yearPills"></div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="charts-top">
+    <div class="chart-card">
+      <h4>Fig. 1 — Total CO₂ Emissions (Mt): Pakistan (2000–2020)</h4>
+      <p>Source: Ritchie et al. (2023); Friedlingstein et al. (2023) &nbsp;·&nbsp; Filtered by year range above</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="chart1"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>Fig. 2 — Per Capita CO₂ Emissions (t/person): Pakistan (2000–2020)</h4>
+      <p>Source: Ritchie et al. (2023); World Bank (2023) &nbsp;·&nbsp; Filtered by year range above</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="chart2"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="charts-mid">
+    <div class="chart-card">
+      <h4>Fig. 3 — Per Capita CO₂ (t/person): Country Comparison</h4>
+      <p>Source: Ritchie et al. (2023) &nbsp;·&nbsp; Use year slicer above to select year</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="chart3"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>Fig. 4 — Share of Global CO₂ (%): Pakistan vs India (2000–2020)</h4>
+      <p>Source: Ritchie et al. (2023) &nbsp;·&nbsp; Filtered by year range above</p>
+      <div class="chart-wrap" style="height:230px"><canvas id="chart4"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 3 -->
+  <div style="margin-bottom:16px">
+    <div class="chart-card full">
+      <h4>Fig. 5 — GDP per Capita (USD) vs Per Capita CO₂ (t/person): Country Comparison (2020)</h4>
+      <p>Source: Ritchie et al. (2023); World Bank (2023) &nbsp;·&nbsp; Each bubble represents one country — hover for details</p>
+      <div class="chart-wrap" style="height:280px"><canvas id="chart5"></canvas></div>
+      <div class="custom-legend" id="legend5"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Sources: Our World in Data (2023) &nbsp;|&nbsp; World Bank (2023) &nbsp;|&nbsp; Global Carbon Project (2023) &nbsp;|&nbsp; EDGAR / JRC (2022)
+    &nbsp;&nbsp;·&nbsp;&nbsp;
+    Jeel Markana &nbsp;|&nbsp; M2024BSASS013 &nbsp;|&nbsp; Assignment I
+  </div>
+</div>
+
+<script>
+// ── RAW DATA ─────────────────────────────────────────────────────────────
+const YEARS = [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,
+               2011,2012,2013,2014,2015,2016,2017,2018,2019,2020];
+
+const PAK_TOTAL = [103.94,105.40,110.57,113.14,124.64,129.95,137.91,148.35,
+                   147.90,148.35,147.50,149.49,150.56,148.18,150.81,144.90,
+                   176.74,211.98,203.50,190.83,215.51];
+
+const PAK_PC    = [0.671,0.662,0.677,0.677,0.728,0.741,0.768,0.804,0.780,
+                   0.763,0.740,0.734,0.725,0.702,0.704,0.667,0.803,0.949,
+                   0.897,0.827,0.917];
+
+const PAK_SHARE = [0.407,0.410,0.430,0.425,0.453,0.451,0.470,0.500,0.484,
+                   0.493,0.462,0.449,0.442,0.430,0.442,0.425,0.503,0.607,
+                   0.573,0.560,0.657];
+
+const IND_SHARE = [3.867,3.892,3.928,3.859,3.960,4.034,4.220,4.416,4.644,
+                   5.111,5.029,5.114,5.502,5.652,6.060,6.310,6.648,6.742,
+                   7.060,7.042,6.894];
+
+// Per-country per capita by year (from MASTER data)
+const COUNTRY_PC_BY_YEAR = {
+  Bangladesh: [0.197,0.227,0.230,0.238,0.252,0.261,0.285,0.288,0.303,0.326,
+               0.355,0.362,0.385,0.414,0.428,0.483,0.508,0.534,0.530,0.575,0.576],
+  China:      [2.886,2.928,3.201,3.753,4.021,4.512,4.947,5.292,5.656,5.920,
+               6.436,7.078,7.213,7.293,7.272,7.144,7.024,7.162,7.376,7.610,7.722],
+  India:      [0.933,0.929,0.941,0.957,0.999,1.035,1.103,1.170,1.234,1.316,
+               1.350,1.400,1.507,1.540,1.637,1.681,1.750,1.784,1.888,1.880,1.727],
+  Pakistan:   PAK_PC,
+  'United States':[21.35,20.72,20.68,20.70,20.87,20.73,20.26,20.32,19.47,17.88,
+                   18.32,17.76,16.96,17.28,17.33,16.68,16.17,15.91,16.32,15.86,14.14],
+  World:      [4.140,4.114,4.151,4.314,4.406,4.501,4.594,4.670,4.692,4.556,
+               4.759,4.865,4.870,4.855,4.823,4.757,4.701,4.724,4.772,4.768,4.476]
+};
+
+// Static 2020 scatter data
+const SCATTER_DATA = [
+  {label:'United States', gdp:63516, pc:14.14, color:'#375623'},
+  {label:'China',         gdp:10627, pc:7.72,  color:'#ED7D31'},
+  {label:'World Avg',     gdp:10938, pc:4.48,  color:'#888888'},
+  {label:'India',         gdp:1907,  pc:1.73,  color:'#2E75B6'},
+  {label:'Pakistan',      gdp:1278,  pc:0.92,  color:'#1E5631'},
+  {label:'Bangladesh',    gdp:2249,  pc:0.58,  color:'#7030A0'},
+];
+
+const COUNTRIES = ['Bangladesh','China','India','Pakistan','United States','World'];
+const BAR_COLORS = ['#7030A0','#ED7D31','#2E75B6','#1E5631','#375623','#888888'];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let selectedYear = 2020;
+let startYear = 2000;
+let endYear   = 2020;
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#5D7A66';
+
+const GREEN  = '#1E5631';
+const GREEN2 = '#27AE60';
+const GRID   = 'rgba(0,0,0,0.06)';
+const BG     = 'rgba(39,174,96,0.07)';
+
+function baseOpts(xTitle, yTitle) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ' ' + ctx.formattedValue } } },
+    scales: {
+      x: { title:{display:true,text:xTitle,color:'#5D7A66',font:{size:10,weight:'bold'}},
+           grid:{color:GRID}, ticks:{maxRotation:45,color:'#5D7A66',font:{size:9}} },
+      y: { title:{display:true,text:yTitle,color:'#5D7A66',font:{size:10,weight:'bold'}},
+           grid:{color:GRID}, ticks:{color:'#5D7A66',font:{size:9}} }
+    }
+  };
+}
+
+// ── CHART 1 ───────────────────────────────────────────────────────────────
+const ctx1 = document.getElementById('chart1').getContext('2d');
+const chart1 = new Chart(ctx1, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+    label: 'Total CO₂ (Mt)',
+    data: [], fill: true,
+    backgroundColor: BG,
+    borderColor: GREEN, borderWidth: 2.5,
+    pointBackgroundColor: GREEN, pointRadius: 3.5, tension: 0.3
+  }]},
+  options: baseOpts('Year', 'CO₂ Emissions (Million Tonnes)')
+});
+
+// ── CHART 2 ───────────────────────────────────────────────────────────────
+const ctx2 = document.getElementById('chart2').getContext('2d');
+const chart2 = new Chart(ctx2, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+    label: 'Per Capita CO₂ (t/person)',
+    data: [], fill: true,
+    backgroundColor: 'rgba(41,128,185,0.08)',
+    borderColor: '#1A6B34', borderWidth: 2.5,
+    pointBackgroundColor: '#1A6B34', pointRadius: 3.5, tension: 0.3
+  }]},
+  options: baseOpts('Year', 'Per Capita CO₂ (t/person)')
+});
+
+// ── CHART 3 ───────────────────────────────────────────────────────────────
+const ctx3 = document.getElementById('chart3').getContext('2d');
+const chart3 = new Chart(ctx3, {
+  type: 'bar',
+  data: { labels: COUNTRIES, datasets: [{
+    label: 'Per Capita CO₂ (t/person)',
+    data: COUNTRIES.map(c => COUNTRY_PC_BY_YEAR[c][YEARS.indexOf(2020)]),
+    backgroundColor: BAR_COLORS,
+    borderRadius: 5, borderSkipped: false
+  }]},
+  options: {
+    ...baseOpts('Per Capita CO₂ (t/person)', 'Country'),
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.parsed.x.toFixed(3)} t/person`
+        }
+      },
+      datalabels: { display: false }
+    },
+    scales: {
+      x: { title:{display:true,text:'Per Capita CO₂ (t/person)',color:'#5D7A66',font:{size:10,weight:'bold'}},
+           grid:{color:GRID}, ticks:{color:'#5D7A66',font:{size:9}} },
+      y: { title:{display:false},
+           grid:{display:false}, ticks:{color:'#5D7A66',font:{size:10,weight:'600'}} }
+    }
+  }
+});
+
+// ── CHART 4 ───────────────────────────────────────────────────────────────
+const ctx4 = document.getElementById('chart4').getContext('2d');
+const chart4 = new Chart(ctx4, {
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'India (%)', data: [], borderColor:'#2E75B6', borderWidth:2.5,
+      pointBackgroundColor:'#2E75B6', pointRadius:3, tension:0.3, fill:false },
+    { label: 'Pakistan (%)', data: [], borderColor: GREEN, borderWidth:2.5,
+      borderDash:[6,3], pointBackgroundColor: GREEN,
+      pointRadius:3, tension:0.3, fill:false },
+  ]},
+  options: {
+    ...baseOpts('Year', 'Global CO₂ Share (%)'),
+    plugins: {
+      legend: { display: true, position: 'bottom',
+        labels: { boxWidth: 14, padding: 12, color:'#5D7A66', font:{size:10} } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.formattedValue}%` } }
+    }
+  }
+});
+
+// ── CHART 5 (SCATTER) ─────────────────────────────────────────────────────
+const ctx5 = document.getElementById('chart5').getContext('2d');
+const chart5 = new Chart(ctx5, {
+  type: 'scatter',
+  data: {
+    datasets: SCATTER_DATA.map(d => ({
+      label: d.label,
+      data: [{ x: d.gdp, y: d.pc }],
+      backgroundColor: d.color + 'CC',
+      borderColor: d.color,
+      borderWidth: 1.5,
+      pointRadius: d.label === 'Pakistan' ? 12 : 9,
+      pointHoverRadius: d.label === 'Pakistan' ? 14 : 11,
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => [
+            ` ${ctx.dataset.label}`,
+            ` GDP/capita: $${ctx.parsed.x.toLocaleString()}`,
+            ` Per Capita CO₂: ${ctx.parsed.y} t/person`
+          ]
+        }
+      }
+    },
+    scales: {
+      x: { type: 'logarithmic',
+           title:{display:true,text:'GDP per Capita (USD, log scale)',color:'#5D7A66',font:{size:10,weight:'bold'}},
+           grid:{color:GRID}, ticks:{
+             color:'#5D7A66',font:{size:9},
+             callback: v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'k' : '$' + v
+           }},
+      y: { title:{display:true,text:'Per Capita CO₂ (t/person)',color:'#5D7A66',font:{size:10,weight:'bold'}},
+           grid:{color:GRID}, ticks:{color:'#5D7A66',font:{size:9}}, min:0, max:17 }
+    }
+  }
+});
+
+// Build scatter legend
+const leg5 = document.getElementById('legend5');
+SCATTER_DATA.forEach(d => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<span class="legend-dot" style="background:${d.color}"></span>${d.label}`;
+  leg5.appendChild(item);
+});
+
+// ── YEAR PILLS (Fig 3 slicer) ─────────────────────────────────────────────
+const pillContainer = document.getElementById('yearPills');
+YEARS.forEach(yr => {
+  const pill = document.createElement('div');
+  pill.className = 'year-pill' + (yr === 2020 ? ' active' : '');
+  pill.textContent = yr;
+  pill.onclick = () => setSelectedYear(yr);
+  pill.id = 'pill-' + yr;
+  pillContainer.appendChild(pill);
+});
+
+function setSelectedYear(yr) {
+  selectedYear = yr;
+  document.querySelectorAll('.year-pill').forEach(p => p.classList.remove('active'));
+  const pill = document.getElementById('pill-' + yr);
+  if (pill) pill.classList.add('active');
+  updateChart3();
+}
+
+function updateChart3() {
+  const idx = YEARS.indexOf(selectedYear);
+  chart3.data.datasets[0].data = COUNTRIES.map(c => {
+    const arr = COUNTRY_PC_BY_YEAR[c];
+    return idx >= 0 ? arr[idx] : arr[arr.length - 1];
+  });
+  chart3.options.plugins.title = { display: true, text: `Year: ${selectedYear}`, color: GREEN, font:{size:11,weight:'bold'} };
+  chart3.update();
+}
+
+// ── YEAR RANGE DROPDOWNS (Fig 1, 2, 4) ────────────────────────────────────
+const startSel = document.getElementById('startYear');
+const endSel   = document.getElementById('endYear');
+YEARS.forEach(yr => {
+  startSel.add(new Option(yr, yr, yr===2000, yr===2000));
+  endSel.add(new Option(yr, yr, yr===2020, yr===2020));
+});
+
+startSel.addEventListener('change', () => {
+  startYear = parseInt(startSel.value);
+  if (startYear > endYear) { endYear = startYear; endSel.value = startYear; }
+  updateTimeSeries();
+});
+endSel.addEventListener('change', () => {
+  endYear = parseInt(endSel.value);
+  if (endYear < startYear) { startYear = endYear; startSel.value = endYear; }
+  updateTimeSeries();
+});
+
+function resetRange() {
+  startYear = 2000; endYear = 2020;
+  startSel.value = 2000; endSel.value = 2020;
+  updateTimeSeries();
+}
+
+function updateTimeSeries() {
+  const filtered = YEARS.map((yr, i) => ({yr, i})).filter(o => o.yr >= startYear && o.yr <= endYear);
+  const labels = filtered.map(o => o.yr);
+  const idx    = filtered.map(o => o.i);
+
+  chart1.data.labels = labels;
+  chart1.data.datasets[0].data = idx.map(i => PAK_TOTAL[i]);
+  chart1.update();
+
+  chart2.data.labels = labels;
+  chart2.data.datasets[0].data = idx.map(i => PAK_PC[i]);
+  chart2.update();
+
+  chart4.data.labels = labels;
+  chart4.data.datasets[0].data = idx.map(i => IND_SHARE[i]);
+  chart4.data.datasets[1].data = idx.map(i => PAK_SHARE[i]);
+  chart4.update();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+updateTimeSeries();
+updateChart3();
+</script>
+</body>
+</html>
